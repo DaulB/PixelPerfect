@@ -110,7 +110,7 @@ namespace PixelPerfect
                 ImGui.Separator();
                 ImGui.Checkbox("[Beta] Enable Class Rings?", ref _classrings);
                 ImGui.Checkbox("[Beta] Enable Pet Rings?", ref _petrings);
-                ImGui.Checkbox("[Beta] Enable Party Rings?", ref _partyrings);
+                //ImGui.Checkbox("[Beta] Enable Party Rings?", ref _partyrings);
 
 
 
