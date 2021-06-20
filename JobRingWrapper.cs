@@ -13,16 +13,19 @@ namespace PixelPerfect
     {
         private int[,] _radii;
         private Num.Vector4[,] _colors;
-        private int[] meleerange = { }; //will use -1 default instead.
+        //This cannot be kept indefinitely, unless support for clases / DOH / DOL never added. 
         private int indexoffset = 19;
         private static float _modulo = 255;
 
-        //General Colors
+        //General Colors, shown in RGB. 
+        //  Consider keeping these as r/g/b/a without modulo, and somehow dividing it in the method below?
         private Num.Vector4 aoeDPS = new Num.Vector4(161 / _modulo, 34 / _modulo, 55 / _modulo, 255 / _modulo);
         private Num.Vector4 aoeHeal = new Num.Vector4(19 / _modulo, 117/_modulo, 35 / _modulo, 255 / _modulo);
         private Num.Vector4 aoeMit = new Num.Vector4(66 / _modulo, 207 / _modulo, 200 / _modulo, 255 / _modulo);
         private Num.Vector4 meleeRange = new Num.Vector4(255f / _modulo, 255f / _modulo, 255f / _modulo, 255f / _modulo);
-        private Num.Vector4 nullVec = new Num.Vector4(-1, -1, -1, -1);
+
+        //I do not wanna display the following no matter what. Easiest is to turn alpha to 0, this is just a step further.
+        private Num.Vector4 nullVec = new Num.Vector4(0, 0, 0, 0);
 
         //Special Colors
         private Num.Vector4 exHeal = new Num.Vector4(195 / _modulo, 54 / _modulo, 164 / _modulo, 255 / _modulo);
@@ -31,6 +34,7 @@ namespace PixelPerfect
             _colors = new Num.Vector4[,]
             {
                 //Starts at pld, so index-19. 3 fields for three colors.
+                //Will need to add additional fields on expac, and also if I add support for classes (no). 
                 {aoeMit, meleeRange, nullVec }, //pld
                 {aoeDPS, meleeRange, nullVec}, //mnk
                 {aoeMit, meleeRange, nullVec}, //war
@@ -100,12 +104,15 @@ namespace PixelPerfect
 
         }
 
+        //Returns an array containing up to three colours associated with the class' rings. 
         public Num.Vector4[]  GetColors(int index)
         {
+            //If a class or DoH/DoL, throw it away now. 
             index -= indexoffset;
             if (index  < 0)
                 return null;
 
+            //Array to hold our retrieved colors.
             Num.Vector4[] colorlist = new Num.Vector4[3];
             for (int i = 0; i < 3; i++)
             {
@@ -114,10 +121,13 @@ namespace PixelPerfect
             return colorlist;
         }
 
+        //Returns an array containing up to three radii associated with the class' rings. 
         public int[] GetRadii(int index)
         {
+            //If a class or DoH/DoL, throw it away now. 
             if (index < 19) return null;
 
+            //Array to hold our retrieved radii.
             int[] templist = new int[3];
 
             for(int i = 0; i < templist.Length; i++)
@@ -132,5 +142,7 @@ namespace PixelPerfect
 
 
 
-/* issues: Maintainability.
+/* issues: 
+ * Maintainability.
+ * It is somewhat annoying that the given values on tooltips don't seem right?
  */

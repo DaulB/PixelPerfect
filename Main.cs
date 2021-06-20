@@ -17,31 +17,56 @@ namespace PixelPerfect
         public string Name => "Pixel Perfect 2.01 BETA";
         private DalamudPluginInterface _pluginInterface;
         private Config _configuration;
+
+        //Activation booleans
         private bool _enabled = true;
         private bool _config;
         private bool _combat = true;
         private bool _circle;
         private bool _instance;
+        private bool _ring;
+
+        //Dban Additions
+        private bool _ring2;
+        private bool _classrings = true;
+        private bool _petrings = false;
+        private bool _partyrings = false;
+
+        //Colours
         private Num.Vector4 _col = new Num.Vector4(1f, 1f, 1f, 1f);
         private Num.Vector4 _col2 = new Num.Vector4(1f, .5f, .5f, 1f);
+        private Num.Vector4 _colRing = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
+        //Dban additions
+        private Num.Vector4 _colRing2 = new Num.Vector4(1f, 1f, 1f, 1f);
         private Num.Vector4 _defaultCol = new Num.Vector4(1f, 1f, 1f, 25f);
         private Num.Vector4[] _classcolors = { new Num.Vector4(1f, 1f, 1f, 1f), new Num.Vector4(1f, 1f, 1f, 1f), new Num.Vector4(1f, 1f, 1f, 1f) };
-        private bool _ring;
-        private bool _ring2;
-        private Num.Vector4 _colRing = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
+        private Num.Vector4 _petRingColor = new Num.Vector4(242f / 255f, 206f / 255f, 44f / 255f, 1f);
+
+        //Ring Properties
         private float _radius = 10f;
-        private float _radius2 = 15f;
         private int _segments = 100;
         private float _thickness = 10f;
+
+        //Ring2 Properties
+        private float _radius2 = 15f;
         private float _thickness2 = 11f;
         private int _segments2 = 50;
-        private Num.Vector4 _colRing2 = new Num.Vector4(1f, 1f, 1f, 1f);
-        private bool _classrings = true;
+
+        //ClassRing Properties
+        private int _classSegments = 50;
+        private float _classOpacity = 100;
+        private float _classThickness =10;
+
+        //PetRing Properties
+        private int _petSegments = 50;
+        private float _petOpacity = 100;
+        private float _petThickness = 10;
+
+        
+        //Dban classes
         JobRingWrapper Wrapper = new JobRingWrapper();
         PetFinder _petfinder = new PetFinder();
         GetPartyMembers _pmembers;
-        private bool _petrings = false;
-        private bool _partyrings = false;
 
         public void Initialize(DalamudPluginInterface pI)
         {
@@ -50,15 +75,25 @@ namespace PixelPerfect
             _ring = _configuration.Ring;
             _thickness = _configuration.Thickness;
             _colRing = _configuration.ColRing;
+            _colRing2 = _configuration.ColRing2;
             _segments = _configuration.Segments;
             _radius = _configuration.Radius;
             _radius2 = _configuration.Radius2;
             _enabled = _configuration.Enabled;
+            _classrings = _configuration.ClassRings;
             _combat = _configuration.Combat;
             _circle = _configuration.Circle;
+            _ring2 = _configuration.Ring2;
             _instance = _configuration.Instance;
             _col = _configuration.Col;
             _col2 = _configuration.Col2;
+            _petrings = _configuration.PetRings;
+            _petRingColor = _configuration.PetRingsColor;
+            _petThickness = _configuration.PetThickness;
+            _petOpacity = _configuration.PetOpacity;
+            _classOpacity = _configuration.ClassOpacity;
+            _classThickness = _configuration.ClassThickness;
+            _classSegments = _configuration.ClassSegments;
             _pluginInterface.UiBuilder.OnBuildUi += DrawWindow;
             _pluginInterface.UiBuilder.OnOpenConfigUi += ConfigWindow;
             _pluginInterface.CommandManager.AddHandler("/pp", new CommandInfo(Command)
@@ -109,17 +144,29 @@ namespace PixelPerfect
 
                 ImGui.Separator();
                 ImGui.Checkbox("[Beta] Enable Class Rings?", ref _classrings);
+
+                if (_classrings)
+                {
+                    ImGui.PushID("Class");
+                    ImGui.DragFloat("Thickness", ref _classThickness);
+                    ImGui.DragInt("Smoothness", ref _classSegments);
+                    ImGui.DragFloat("Opacity", ref _classOpacity);
+                    ImGui.PopID();
+                }
+                ImGui.Separator();
+
                 ImGui.Checkbox("[Beta] Enable Pet Rings?", ref _petrings);
+                if(_petrings) 
+                {
+                    ImGui.PushID("Pets");
+                    ImGui.ColorEdit4("Pet Ring Color", ref _petRingColor, ImGuiColorEditFlags.NoInputs);
+                    ImGui.DragInt("Smoothness", ref _petSegments);
+                    ImGui.DragFloat("Thickness", ref _petThickness);
+                    ImGui.DragFloat("Opacity", ref _petOpacity);
+                    ImGui.PopID();
+                }
                 //ImGui.Checkbox("[Beta] Enable Party Rings?", ref _partyrings);
 
-
-
-                /* if (_seenDebug) {
-                     ImGui.Text("Q: Why doesn't ring size match what my tooltip tells me?");
-                     ImGui.Text("A: Ability tooltips are inconsistent. Most Tank ranged abilities \n are 15.5 Yalms, not 15. Most AoE attacks are 4 Yalms, not 5.");
-                     ImGui.Checkbox("Stop Showing Me This.", ref _seenDebug);
-                 }
-                */
                 ImGui.Separator();
                 if (ImGui.Button("Save and Close Config"))
                 {
@@ -181,6 +228,7 @@ namespace PixelPerfect
             if (_ring)
             {
                 DrawRingWorld(_pluginInterface.ClientState.LocalPlayer, _radius, _segments, _thickness, ImGui.GetColorU32(_colRing));
+
                 if (_ring2)
                 {
                     DrawRingWorld(_pluginInterface.ClientState.LocalPlayer, _radius2, _segments2, _thickness2, ImGui.GetColorU32(_colRing2));
@@ -196,19 +244,11 @@ namespace PixelPerfect
             //Generate Pet Rings [Beta]
             if (_petrings)
             {
-                //This logic is contained in the PetFinder class. 
-                if (_pluginInterface.ClientState.LocalPlayer.ClassJob.Id < 26 || _pluginInterface.ClientState.LocalPlayer.ClassJob.Id > 28) { return; }
 
-                Actor petactor = _petfinder.GetPlayerPet(_pluginInterface.ClientState.LocalPlayer, _pluginInterface);
-                if (petactor == null)
-                {
-                    return;
-                }
-
-                DrawRingWorld(petactor, _radius, _segments, _thickness, ImGui.GetColorU32(_defaultCol));
+                DrawPetRings(_pluginInterface.ClientState.LocalPlayer, _pluginInterface);
             }
 
-            //Generate Party Rings [Super Beta]
+            //Generate Party Rings [Not Implemented in 1.6.0.0]
             if (_partyrings)
             {
                 //The Class I'm calling will be called 'get party' that returns an array of actors that contains all current party members. 
@@ -249,6 +289,14 @@ namespace PixelPerfect
             _configuration.Ring2 = _ring2;
             _configuration.Radius = _radius;
             _configuration.Radius2 = _radius2;
+            _configuration.ClassRings = _classrings;
+            _configuration.PetRingsColor = _petRingColor;
+            _configuration.PetRings = _petrings;
+            _configuration.PetThickness = _petThickness;
+            _configuration.PetOpacity = _petOpacity;
+            _configuration.ClassOpacity = _classOpacity;
+            _configuration.ClassThickness = _classThickness;
+            _configuration.ClassSegments = _classSegments;
             _pluginInterface.SavePluginConfig(_configuration);
         }
 
@@ -268,8 +316,23 @@ namespace PixelPerfect
             //The following (sloppy) implementation is not final.
             //  Expect awkward bugs.
 
-            int defaultSegments = 50;
-            int defaultThickness = 4;
+
+            //Set up opacity, clamp function won't work. 
+            if(_classOpacity > 100)
+            {
+                _classOpacity = 100;
+            }
+
+            if( _classOpacity < 0)
+            {
+                _classOpacity = 0;
+            }
+
+            //Because I don't like negative numbers in the UI.
+            if(_thickness < 0)
+            {
+                _thickness = 0;
+            }
 
             int[] radii = Wrapper.GetRadii((int)job);
 
@@ -282,9 +345,43 @@ namespace PixelPerfect
                 if (radii[i] != -1 && radii[i] != 0)
                 {
                     {
-                        DrawRingWorld(actor, radii[i], defaultSegments, defaultThickness, ImGui.GetColorU32(colors[i]));
+                        //Apply our opacity modifier.
+                        colors[i].W *= (_classOpacity/100);
+                        DrawRingWorld(actor, radii[i], _classSegments, _classThickness, ImGui.GetColorU32(colors[i]));
                     }
                 }
+            }
+        }
+
+        private void DrawPetRings(PlayerCharacter character, DalamudPluginInterface p_interface)
+        {
+            //This logic is contained in the PetFinder class. 
+            if (_pluginInterface.ClientState.LocalPlayer.ClassJob.Id < 26 || _pluginInterface.ClientState.LocalPlayer.ClassJob.Id > 28) { return; }
+
+            Actor petactor = _petfinder.GetPlayerPet(character, p_interface);
+            if (petactor == null)
+            {
+                return;
+            }
+            //Set up opacity, clamp function won't work. 
+            if (_petOpacity > 100)
+            {
+                _petOpacity = 100;
+            }
+
+            if (_petOpacity < 0)
+            {
+                _petOpacity = 0;
+            }
+
+            _petRingColor.W = (_petOpacity / 100);
+           
+            DrawRingWorld(petactor, 15, _petSegments, _petThickness, ImGui.GetColorU32(_petRingColor));
+
+            //SCH Fey Blessing is 20y, needs additional ring. 
+            if (character.ClassJob.Id == 28)
+            {
+                DrawRingWorld(petactor, 20, _petSegments, _petThickness, ImGui.GetColorU32(_petRingColor));
             }
         }
     }
@@ -303,16 +400,23 @@ namespace PixelPerfect
         public Num.Vector4 Col2 { get; set; } = new Num.Vector4(0.4f, 0.4f, 0.4f, 1f);
         public Num.Vector4 ColRing { get; set; } = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
         public Num.Vector4 ColRing2 { get; set; } = new Num.Vector4(0.4f, 0.4f, 0.4f, 0.5f);
+        public Num.Vector4 PetRingsColor { get; set; } = new Num.Vector4(242f / 255f, 206f / 255f, 44f / 255f, 1f);
         public int Segments { get; set; } = 100;
         public int Segments2 { get; set; } = 100;
+        public int PetSegments { get; set; } = 100;
         public float Thickness { get; set; } = 10f;
         public float Thickness2 { get; set; } = 10f;
+        public float PetThickness { get; set; } = 10f;
         public bool Ring { get; set; }
         public bool Ring2 { get; set; }
         public float Radius { get; set; } = 2f;
         public float Radius2 { get; set; } = 4f;
-
-
+        public bool ClassRings { get; set; }
+        public bool PetRings { get; set; }
+        public float ClassOpacity { get; set; }
+        public float ClassThickness { get; set; }
+        public float PetOpacity { get; set; } = 1f;
+        public int ClassSegments { get; set; }
     }
 
 }

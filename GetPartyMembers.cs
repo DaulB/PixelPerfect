@@ -16,7 +16,7 @@ namespace PixelPerfect
         //This will hold all the actors. 
         // private PlayerCharacter[] _partyMembers = new PlayerCharacter[8];
         //Names of all the players we get from the party list, we check the actor table against this. 
-        private string[] playerNames;
+        //private string[] playerNames;
 
         private DalamudPluginInterface _pi;
         //The party list object in the game. 
