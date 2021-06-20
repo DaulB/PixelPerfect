@@ -328,7 +328,7 @@ namespace PixelPerfect
                 _classOpacity = 0;
             }
 
-            //Because I don't like negative numbers in the UI.
+            //Because I don't like negative numbers in the UI
             if(_thickness < 0)
             {
                 _thickness = 0;
