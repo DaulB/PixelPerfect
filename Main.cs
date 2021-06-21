@@ -105,6 +105,7 @@ namespace PixelPerfect
             _partyOpacity = _configuration.PartyOpacity;
             _partyThickness = _configuration.PartyThickness;
             _partySegments = _configuration.PartySegments;
+            _partyrings = _configuration.PartyRings;
             _pluginInterface.UiBuilder.OnBuildUi += DrawWindow;
             _pluginInterface.UiBuilder.OnOpenConfigUi += ConfigWindow;
 
@@ -317,6 +318,7 @@ namespace PixelPerfect
             _configuration.PartyOpacity = _partyOpacity;
             _configuration.PartySegments = _partySegments;
             _configuration.PartyThickness = _partyThickness;
+            _configuration.PartyRings = _partyrings;
             _pluginInterface.SavePluginConfig(_configuration);
         }
 
@@ -364,7 +366,7 @@ namespace PixelPerfect
                     {
                         {
                             //Apply our opacity modifier.
-                            colors[i].W = _classOpacity;
+                            colors[i].W = (_classOpacity/100);
                             DrawRingWorld(actor, radii[i], _classSegments, _classThickness, ImGui.GetColorU32(colors[i]));
                         }
                     }
@@ -372,19 +374,20 @@ namespace PixelPerfect
 
                 return;
             }
-
+            
             if (_partyOpacity > 100) { _partyOpacity = 100; }
             if (_partyOpacity < 0) { _partyOpacity = 0; }
             if (_partySegments > 50) { _partySegments = 50; }
-
+            if (_partyThickness < 0) { _partyThickness = 0; }
+            
             for (int i = 0; i < 3; i++)
             {
                 if (radii[i] != -1 && radii[i] != 0)
                 {
                     {
                         //Apply our opacity modifier.
-                        colors[i].W += (_partyOpacity);
-                        DrawRingWorld(actor, radii[i], _classSegments, _classThickness, ImGui.GetColorU32(colors[i]));
+                        colors[i].W *= (_partyOpacity/100);
+                        DrawRingWorld(actor, radii[i], _partySegments, _partyThickness, ImGui.GetColorU32(colors[i]));
                     }
                 }
 
@@ -428,11 +431,15 @@ namespace PixelPerfect
             for (int i = 0; i < k.Count; i++)
             {
                 PlayerCharacter temp = (PlayerCharacter)(k[i].Actor);
-                DrawClassRings(temp, temp.ClassJob.Id);
-                if(temp.ClassJob.Id == 27 || temp.ClassJob.Id == 28)
+                if (temp != _pluginInterface.ClientState.LocalPlayer)
                 {
-                    DrawPartyRings(temp, _pluginInterface);
+                    DrawClassRings(temp, temp.ClassJob.Id);
+                    if (temp.ClassJob.Id == 27 || temp.ClassJob.Id == 28)
+                    {
+                        DrawPartyRings(temp, _pluginInterface);
+                    }
                 }
+                
             }
             return;
         }
@@ -472,6 +479,7 @@ namespace PixelPerfect
         public int PartySegments { get; set; }
         public float PartyThickness { get; set; }
         public float PartyOpacity { get; set; }
+        public bool PartyRings { get; set; }
     }
 
 }

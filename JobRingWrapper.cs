@@ -110,7 +110,7 @@ namespace PixelPerfect
             //We shouldn't display 'default' aoes unless it's the player character's. 
             if( character != pinterface.ClientState.LocalPlayer)
             {
-                meleeRange.W = -100;
+                meleeRange.W = 0;
             }
             if(character == pinterface.ClientState.LocalPlayer)
             {
