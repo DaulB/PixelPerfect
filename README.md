@@ -1,3 +1,3 @@
-Workspace.
+Contains new functionality, drawing rings on party members. 
 
-if you compile this and it doesn't work, don't be surprised. 
+Some bugs remain, such as it not displaying properly when you switch zones. 
