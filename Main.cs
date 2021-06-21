@@ -55,18 +55,18 @@ namespace PixelPerfect
         //ClassRing Properties
         private int _classSegments = 50;
         private float _classOpacity = 100;
-        private float _classThickness =10;
+        private float _classThickness = 10;
 
         //PetRing Properties
         private int _petSegments = 50;
         private float _petOpacity = 100;
         private float _petThickness = 10;
-        
+
         //Partying Properties.
         private int _partySegments = 30;
         private float _partyThickness = 5;
         private float _partyOpacity = .5f;
-        
+
         //Dban classes
         JobRingWrapper Wrapper = new JobRingWrapper();
         PetFinder _petfinder = new PetFinder();
@@ -170,7 +170,7 @@ namespace PixelPerfect
                 ImGui.Separator();
 
                 ImGui.Checkbox("[Beta] Enable Pet Rings?", ref _petrings);
-                if(_petrings) 
+                if (_petrings)
                 {
                     ImGui.PushID("Pets");
                     ImGui.ColorEdit4("Pet Ring Color", ref _petRingColor, ImGuiColorEditFlags.NoInputs);
@@ -366,7 +366,7 @@ namespace PixelPerfect
                     {
                         {
                             //Apply our opacity modifier.
-                            colors[i].W = (_classOpacity/100);
+                            colors[i].W = (_classOpacity / 100);
                             DrawRingWorld(actor, radii[i], _classSegments, _classThickness, ImGui.GetColorU32(colors[i]));
                         }
                     }
@@ -374,19 +374,19 @@ namespace PixelPerfect
 
                 return;
             }
-            
+
             if (_partyOpacity > 100) { _partyOpacity = 100; }
             if (_partyOpacity < 0) { _partyOpacity = 0; }
             if (_partySegments > 50) { _partySegments = 50; }
             if (_partyThickness < 0) { _partyThickness = 0; }
-            
+
             for (int i = 0; i < 3; i++)
             {
                 if (radii[i] != -1 && radii[i] != 0)
                 {
                     {
                         //Apply our opacity modifier.
-                        colors[i].W *= (_partyOpacity/100);
+                        colors[i].W *= (_partyOpacity / 100);
                         DrawRingWorld(actor, radii[i], _partySegments, _partyThickness, ImGui.GetColorU32(colors[i]));
                     }
                 }
@@ -394,10 +394,11 @@ namespace PixelPerfect
             }
 
         }
-            private void DrawPetRings(PlayerCharacter character, DalamudPluginInterface p_interface)
+
+        private void DrawPetRings(PlayerCharacter character, DalamudPluginInterface p_interface)
         {
             //This logic is contained in the PetFinder class. 
-            if (_pluginInterface.ClientState.LocalPlayer.ClassJob.Id < 26 || _pluginInterface.ClientState.LocalPlayer.ClassJob.Id > 28) { return; }
+            if (character.ClassJob.Id < 26 || character.ClassJob.Id > 28) { return; }
 
             Actor petactor = _petfinder.GetPlayerPet(character, p_interface);
             if (petactor == null)
@@ -409,14 +410,14 @@ namespace PixelPerfect
             {
                 _petOpacity = 100;
             }
-
+            
             if (_petOpacity < 0)
             {
                 _petOpacity = 0;
             }
 
             _petRingColor.W = (_petOpacity / 100);
-           
+
             DrawRingWorld(petactor, 15, _petSegments, _petThickness, ImGui.GetColorU32(_petRingColor));
 
             //SCH Fey Blessing is 20y, needs additional ring. 
@@ -426,17 +427,24 @@ namespace PixelPerfect
             }
         }
 
-        private void DrawPartyRings( PlayerCharacter character, DalamudPluginInterface p_interface)
-        { 
+        private void DrawPartyRings(PlayerCharacter character, DalamudPluginInterface p_interface)
+        {
+            if (_pluginInterface.ClientState.Condition[Dalamud.Game.ClientState.ConditionFlag.BetweenAreas] || _pluginInterface.ClientState.Condition == null)
+            {
+                return;
+            }
+            {
+
+            }
             for (int i = 0; i < k.Count; i++)
             {
                 PlayerCharacter temp = (PlayerCharacter)(k[i].Actor);
-                if (temp != _pluginInterface.ClientState.LocalPlayer)
+                if (temp != _pluginInterface.ClientState.LocalPlayer && temp != null)
                 {
                     DrawClassRings(temp, temp.ClassJob.Id);
                     if (temp.ClassJob.Id == 27 || temp.ClassJob.Id == 28)
                     {
-                        DrawPartyRings(temp, _pluginInterface);
+                        DrawPetRings(temp, _pluginInterface);
                     }
                 }
                 

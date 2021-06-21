@@ -44,7 +44,7 @@ namespace PixelPerfect
                 {aoeMit, nullVec, nullVec}, //blm
                 {nullVec, nullVec, nullVec },  //acn
                 {nullVec, nullVec, nullVec },  //smn
-                {aoeHeal, nullVec, nullVec }, //sch
+                {aoeHeal, meleeRange, nullVec }, //sch
                 {nullVec, nullVec, nullVec }, //rog
                 {meleeRange, nullVec, nullVec }, //nin
                 {aoeMit, nullVec, nullVec }, //mch
@@ -110,8 +110,10 @@ namespace PixelPerfect
             //We shouldn't display 'default' aoes unless it's the player character's. 
             if( character != pinterface.ClientState.LocalPlayer)
             {
-                meleeRange.W = 0;
+                meleeRange.W = -1;
             }
+
+            //We SHOULD display 'default' aoes if it's the local player character. 
             if(character == pinterface.ClientState.LocalPlayer)
             {
                 meleeRange.W = 1;
