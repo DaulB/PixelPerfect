@@ -87,8 +87,8 @@ namespace PixelPerfect
                 { 20, 15, 6 },   //whm
                 { 25, 0, 0},    //blm
                 { -1, 0, 0 },   //Arcanist    
-                { -1, 0, 0},    //Summoner, not relavent?
-                { 15, 5, 0 },   //Scholar, can we get Faerie location?
+                { -1, 0, 0},    //Summoner
+                { 15, 5, 0 },   //Scholar
                 {-1, 0, 0 },    //Rogue
                 { 5, 0, 0 },    //Ninja
                 { 20, 0, 0 },   //mch
@@ -105,8 +105,18 @@ namespace PixelPerfect
         }
 
         //Returns an array containing up to three colours associated with the class' rings. 
-        public Num.Vector4[]  GetColors(int index)
+        public Num.Vector4[]  GetColors(Dalamud.Game.ClientState.Actors.Types.PlayerCharacter character, DalamudPluginInterface pinterface)
         {
+            //We shouldn't display 'default' aoes unless it's the player character's. 
+            if( character != pinterface.ClientState.LocalPlayer)
+            {
+                meleeRange.W = -100;
+            }
+            if(character == pinterface.ClientState.LocalPlayer)
+            {
+                meleeRange.W = 1;
+            }
+            int index = (int)character.ClassJob.Id;
             //If a class or DoH/DoL, throw it away now. 
             index -= indexoffset;
             if (index  < 0)

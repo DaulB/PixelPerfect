@@ -61,16 +61,24 @@ namespace PixelPerfect
         private int _petSegments = 50;
         private float _petOpacity = 100;
         private float _petThickness = 10;
-
+        
+        //Partying Properties.
+        private int _partySegments = 30;
+        private float _partyThickness = 5;
+        private float _partyOpacity = .5f;
         
         //Dban classes
         JobRingWrapper Wrapper = new JobRingWrapper();
         PetFinder _petfinder = new PetFinder();
-        GetPartyMembers _pmembers;
+        //PartyMembers _pmembers = new PartyMembers();
+
+        //Class shamelessly stolen from 0ceal0t
+        PList k;
 
         public void Initialize(DalamudPluginInterface pI)
         {
             _pluginInterface = pI;
+            k = new PList(_pluginInterface, _pluginInterface.TargetModuleScanner);
             _configuration = _pluginInterface.GetPluginConfig() as Config ?? new Config();
             _ring = _configuration.Ring;
             _thickness = _configuration.Thickness;
@@ -94,8 +102,13 @@ namespace PixelPerfect
             _classOpacity = _configuration.ClassOpacity;
             _classThickness = _configuration.ClassThickness;
             _classSegments = _configuration.ClassSegments;
+            _partyOpacity = _configuration.PartyOpacity;
+            _partyThickness = _configuration.PartyThickness;
+            _partySegments = _configuration.PartySegments;
             _pluginInterface.UiBuilder.OnBuildUi += DrawWindow;
             _pluginInterface.UiBuilder.OnOpenConfigUi += ConfigWindow;
+
+
             _pluginInterface.CommandManager.AddHandler("/pp", new CommandInfo(Command)
             {
                 HelpMessage = "Pixel Perfect config."
@@ -160,12 +173,21 @@ namespace PixelPerfect
                 {
                     ImGui.PushID("Pets");
                     ImGui.ColorEdit4("Pet Ring Color", ref _petRingColor, ImGuiColorEditFlags.NoInputs);
-                    ImGui.DragInt("Smoothness", ref _petSegments);
                     ImGui.DragFloat("Thickness", ref _petThickness);
+                    ImGui.DragInt("Smoothness", ref _petSegments);
                     ImGui.DragFloat("Opacity", ref _petOpacity);
                     ImGui.PopID();
                 }
-                //ImGui.Checkbox("[Beta] Enable Party Rings?", ref _partyrings);
+                ImGui.Separator();
+                ImGui.Checkbox("[Beta] Enable Party Rings?", ref _partyrings);
+                if (_partyrings)
+                {
+                    ImGui.PushID("Party");
+                    ImGui.DragFloat("Thickness", ref _partyThickness);
+                    ImGui.DragInt("Smoothness", ref _partySegments);
+                    ImGui.DragFloat("Opacity", ref _partyOpacity);
+                    ImGui.PopID();
+                }
 
                 ImGui.Separator();
                 if (ImGui.Button("Save and Close Config"))
@@ -244,19 +266,14 @@ namespace PixelPerfect
             //Generate Pet Rings [Beta]
             if (_petrings)
             {
-
                 DrawPetRings(_pluginInterface.ClientState.LocalPlayer, _pluginInterface);
             }
 
             //Generate Party Rings [Not Implemented in 1.6.0.0]
             if (_partyrings)
             {
-                //The Class I'm calling will be called 'get party' that returns an array of actors that contains all current party members. 
-                //I think that, perhaps, it would be a good idea to ONLY generate the party list if there's a change in the number of party members. 
-                //ie, when partylist.length() before and partylist.length() after aren't equal. 
-                //That will either be handled here, or in the class itself. 
-
-                _pmembers = new GetPartyMembers(_pluginInterface.ClientState.LocalPlayer, _pluginInterface);
+                //testing
+                DrawPartyRings(_pluginInterface.ClientState.LocalPlayer, _pluginInterface);
             }
 
             ImGui.End();
@@ -297,6 +314,9 @@ namespace PixelPerfect
             _configuration.ClassOpacity = _classOpacity;
             _configuration.ClassThickness = _classThickness;
             _configuration.ClassSegments = _classSegments;
+            _configuration.PartyOpacity = _partyOpacity;
+            _configuration.PartySegments = _partySegments;
+            _configuration.PartyThickness = _partyThickness;
             _pluginInterface.SavePluginConfig(_configuration);
         }
 
@@ -313,23 +333,20 @@ namespace PixelPerfect
 
         private void DrawClassRings(Actor actor, UInt32 job)
         {
-            //The following (sloppy) implementation is not final.
-            //  Expect awkward bugs.
-
 
             //Set up opacity, clamp function won't work. 
-            if(_classOpacity > 100)
+            if (_classOpacity > 100)
             {
                 _classOpacity = 100;
             }
 
-            if( _classOpacity < 0)
+            if (_classOpacity < 0)
             {
                 _classOpacity = 0;
             }
 
             //Because I don't like negative numbers in the UI
-            if(_thickness < 0)
+            if (_thickness < 0)
             {
                 _thickness = 0;
             }
@@ -338,7 +355,27 @@ namespace PixelPerfect
 
             Num.Vector4[] colors = new Num.Vector4[4];
 
-            colors = Wrapper.GetColors((int)job);
+            colors = Wrapper.GetColors((PlayerCharacter)actor, _pluginInterface);
+            if (actor == _pluginInterface.ClientState.LocalPlayer)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    if (radii[i] != -1 && radii[i] != 0)
+                    {
+                        {
+                            //Apply our opacity modifier.
+                            colors[i].W = _classOpacity;
+                            DrawRingWorld(actor, radii[i], _classSegments, _classThickness, ImGui.GetColorU32(colors[i]));
+                        }
+                    }
+                }
+
+                return;
+            }
+
+            if (_partyOpacity > 100) { _partyOpacity = 100; }
+            if (_partyOpacity < 0) { _partyOpacity = 0; }
+            if (_partySegments > 50) { _partySegments = 50; }
 
             for (int i = 0; i < 3; i++)
             {
@@ -346,14 +383,15 @@ namespace PixelPerfect
                 {
                     {
                         //Apply our opacity modifier.
-                        colors[i].W *= (_classOpacity/100);
+                        colors[i].W += (_partyOpacity);
                         DrawRingWorld(actor, radii[i], _classSegments, _classThickness, ImGui.GetColorU32(colors[i]));
                     }
                 }
-            }
-        }
 
-        private void DrawPetRings(PlayerCharacter character, DalamudPluginInterface p_interface)
+            }
+
+        }
+            private void DrawPetRings(PlayerCharacter character, DalamudPluginInterface p_interface)
         {
             //This logic is contained in the PetFinder class. 
             if (_pluginInterface.ClientState.LocalPlayer.ClassJob.Id < 26 || _pluginInterface.ClientState.LocalPlayer.ClassJob.Id > 28) { return; }
@@ -383,6 +421,20 @@ namespace PixelPerfect
             {
                 DrawRingWorld(petactor, 20, _petSegments, _petThickness, ImGui.GetColorU32(_petRingColor));
             }
+        }
+
+        private void DrawPartyRings( PlayerCharacter character, DalamudPluginInterface p_interface)
+        { 
+            for (int i = 0; i < k.Count; i++)
+            {
+                PlayerCharacter temp = (PlayerCharacter)(k[i].Actor);
+                DrawClassRings(temp, temp.ClassJob.Id);
+                if(temp.ClassJob.Id == 27 || temp.ClassJob.Id == 28)
+                {
+                    DrawPartyRings(temp, _pluginInterface);
+                }
+            }
+            return;
         }
     }
 
@@ -417,6 +469,9 @@ namespace PixelPerfect
         public float ClassThickness { get; set; }
         public float PetOpacity { get; set; } = 1f;
         public int ClassSegments { get; set; }
+        public int PartySegments { get; set; }
+        public float PartyThickness { get; set; }
+        public float PartyOpacity { get; set; }
     }
 
 }

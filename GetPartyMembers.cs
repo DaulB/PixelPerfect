@@ -1,5 +1,6 @@
 ﻿using System;
 using Dalamud.Plugin;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using ImGuiScene;
 using Dalamud.Configuration;
@@ -11,37 +12,63 @@ using Dalamud.Game.ClientState.Actors.Types;
 
 namespace PixelPerfect
 {
-    class GetPartyMembers
+    class PartyMembers
     {
-        //This will hold all the actors. 
-        // private PlayerCharacter[] _partyMembers = new PlayerCharacter[8];
-        //Names of all the players we get from the party list, we check the actor table against this. 
-        //private string[] playerNames;
+        private PlayerCharacter[] partymembers = new PlayerCharacter[8];
 
-        private DalamudPluginInterface _pi;
-        //The party list object in the game. 
-
-
-        public GetPartyMembers(PlayerCharacter player, DalamudPluginInterface pi)
+        public PlayerCharacter[] GetPartyMembers(DalamudPluginInterface _plugininterface)
         {
-            //Consideration:
-            //  IF I keep the array the same size every time, then I don't need
-            //  to keep creating new arrays, just adding more info to the same one.
-            //  But I need a way to terminate it, and for people to get the size of it.
-            //  Better encapsulation if it DOESN"T have null elements.
-            //  But more 'expensive' if I create new arrays...
-            //  Also, depending on if Pets or Companions are party members, may have unintended consequences...
-            _pi = pi;
-            //If this is 0, we can't populate the list. 
-            //This is probably the case if there's no party at all?
-            //Furthermore, if a pet counts as being in a party this might have unintended consequences. 
+            //Open the Actor table...
+            int counter = 0;
+            int partysize = 8;
 
-            if(_pi.ClientState.PartyList.Length == 0)
+            for(int i = 0; i<_plugininterface.ClientState.Actors.Length; i++)
             {
-                Dalamud.Plugin.PluginLog.Log(" Party length of Zero. ");
+                if(_plugininterface.ClientState.Actors[i] != null)
+                {
+                    byte flag = Marshal.ReadByte(_plugininterface.ClientState.Actors[i].Address + 0x19A0 + 16);
+
+                    bool isPartyMember = (flag & 16) > 0;
+                    if (isPartyMember)
+                    {
+                        PluginLog.Log("Found individual " + _plugininterface.ClientState.Actors[i].Name + " who is a party member.");
+                    }
+
+                }
+                
             }
 
-            return;
+            return null;
+            for (int i = 0; i < _plugininterface.ClientState.Actors.Length && counter <partysize; i++)
+            {
+                //make sure the entry isn't null before we seg fault
+                if (_plugininterface.ClientState.Actors[i] != null)
+                {
+                    //next, check that the actor is a playercharacter
+                    if (_plugininterface.ClientState.Actors[i].ObjectKind == ObjectKind.Player)
+                    {
+                         
+                        byte flag = Marshal.ReadByte(_plugininterface.ClientState.Actors[i].Address + 0x19A0, 16);
+
+                        //Lets check that the person is a party member.
+                        if (flag == 16)
+                        {
+                            PluginLog.Log("Found Party Character " + _plugininterface.ClientState.Actors[i].Name);
+                            PlayerCharacter tempact = (PlayerCharacter)_plugininterface.ClientState.Actors[i];
+                            partymembers[counter] = tempact;                  
+                        }
+                    }
+                }
+                counter++;
+            }
+            /*
+            for(int i = counter; i < 8; i++)
+            {
+                //fill the remainder of the list with null. 
+                partymembers[i] = null;
+            }
+            */
+            return null;
         }
     }
 }
