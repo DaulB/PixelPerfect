@@ -1,3 +1,1 @@
-Contains new functionality, drawing rings on party members. 
-
-Some bugs remain, such as it not displaying properly when you switch zones. 
+This version is seemingly working fine, but will not be merged with Master until I clean it up a bit. 
